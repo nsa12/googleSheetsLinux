@@ -1,6 +1,7 @@
 from __future__ import print_function
 import httplib2
 import os
+import sys
 
 from apiclient import discovery
 from oauth2client import client
@@ -54,20 +55,42 @@ def main():
     students in a sample spreadsheet:
     https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
     """
+    
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?version=v4')
     service = discovery.build('sheets', 'v3', http=http, discoveryServiceUrl=discoveryUrl)
-    print('-'*20)
-    print('Enter the ID of the spreadsheet you would like to edit.')
-    spreadsheetId = input('Enter "new" to create one or "trial" to use a default spreadsheet. ID: ')
+    
+    while 1:
+        print('-'*20)
+        print('What would you like to do?')
+        print('\t1. Create new spreadsheet')
+        print('\t2. View an existing spreadsheet')
+        print('\t3. Edit an existing spreadsheet')
+        print('\t4. Exit')
+        try:
+            choice = int(input('Your Choice: '))
+        except ValueError:
+            choice = 5
 
-    if spreadsheetId.lower() == "new":
-        create(service)
-
-    else:
-        view(service, spreadsheetId)
-        edit(service, spreadsheetId)
+        if choice == 1:
+            create(service)
+        elif choice == 2:            
+            print('\nEnter the ID of the spreadsheet you would like to view. ')
+            spreadsheetId = input('Or enter \"trial\" to use a default spreadsheet: ')
+            view(service, spreadsheetId)
+        elif choice == 3:
+            print('\nCurrently this feature is not enabled.')
+            '''
+            print('\nEnter the ID of the spreadsheet you would like to edit. ')
+            spreadsheetId = input('Or enter \"trial\" to use a default spreadsheet: ')
+            edit(service, spreadsheetId)
+            '''
+        elif choice == 4:
+            print('Exiting. Have a good day!')
+            sys.exit()
+        else:
+            print('Illegal input. Kindly enter a digit between 1-4.')
 
 
 def create(service):
@@ -81,12 +104,14 @@ def create(service):
         'title': input('\nEnter Title of Spreadsheet: ')
       },
     }
+
     try:
-        newsheet = service.spreadsheets().create(body=data).execute()
-        print('Spreadsheet Created! Kindly note the spreadsheet ID for further use.')
-        print('Spreadsheet ID:', newsheet['spreadsheetId'])
+        new_sheet = service.spreadsheets().create(body=data).execute()
+        print('\nSpreadsheet Created! Kindly note the spreadsheet ID for further use.')
+        print('Spreadsheet ID:', new_sheet['spreadsheetId'])
+
     except:
-        print('Spreadsheet Not Created!')
+        print('Spreadsheet not created!')
 
 def view(service, spreadsheetId):
     '''Helps in viewing data for a spreadsheet using spreadsheet ID.
@@ -136,13 +161,14 @@ def view(service, spreadsheetId):
         rangeName = cellRange
     
     print('Fetching data for', rangeName)
+    
     try:
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheetId, range=rangeName).execute()
-        print('')
         values = result['values']
         if not values:
-            print('No data found.')
+            print('\nNo data found.')
         else:
+            print('')
             for row in values:
                 curr_row = ''
                 for col in row:
