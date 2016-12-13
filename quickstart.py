@@ -49,24 +49,22 @@ def get_credentials():
     return credentials
 
 def main():
-    """Shows basic usage of the Sheets API.
+    """Dashboard
 
-    Creates a Sheets API service object and prints the names and majors of
-    students in a sample spreadsheet:
-    https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
+    Provides a menu driven dashboard for the script to manage google sheets from the terminal.
     """
     
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     discoveryUrl = ('https://sheets.googleapis.com/$discovery/rest?version=v4')
-    service = discovery.build('sheets', 'v3', http=http, discoveryServiceUrl=discoveryUrl)          #REMEMBER TO CHANGE TO v4!
+    service = discovery.build('sheets', 'v4', http=http, discoveryServiceUrl=discoveryUrl)          #REMEMBER TO CHANGE TO v4!
     newSheetID = ''
 
     while 1:
         print('')
         print('-'*40)
         print('What would you like to do?')
-        print('\t0. View A1 Notation Rules')
+        print('\t0. View A1 Notation Rules (Strongly advised for first time users)')
         print('\t1. Create new spreadsheet')
         print('\t2. View an existing spreadsheet')
         print('\t3. Append to an existing spreadsheet')
@@ -109,6 +107,11 @@ def main():
             print('Illegal input. Kindly enter a digit between 0-6.')
 
 def A1_Notation():
+    """Provides description of A1 notation used by Sheets API.
+
+    Prints information about the A1 notation used to access cells in a spreadsheet. 
+    """
+
     print('\nPlease note the A1 Notation: This is a string like \"Sheet1!A1:B2\", that refers to a group of cells in the spreadsheet.')
     print('For example, valid ranges are:')
     print('\tSheet1!A1:B2 refers to the \"top-left-cell:bottom-right-cell in Sheet1\". It displays first two cells in the top two rows of Sheet1.')
@@ -120,6 +123,13 @@ def A1_Notation():
     print('Spreadsheet API uses A1 notation for accessing spreadsheets. Fill the data keeping that in mind.')
 
 def formRange(function):
+    """Helps in developing rangeName for sending requests to Google Spreadsheets API.
+
+    Creates a Sheets API service object and prints the names and majors of
+    students in a sample spreadsheet:
+    https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
+    """
+
     sheetName = input('\nEnter the name of sheet you would like to use (Enter "$1" to use first sheet): ')
 
     if sheetName != '$1':
@@ -128,7 +138,7 @@ def formRange(function):
         rangeName = ''
 
     if function in ['view', 'clear', 'update']:
-        cellRange = input('\nEnter the cell range as per A1 notation. \nOr enter \"all\" to %s the entire sheet (sheet name must be explicitly mentioned for this): ' %function)
+        cellRange = input('\nEnter the cell range as per A1 notation (eg: A1:B2). \nOr enter \"all\" to %s the entire sheet (sheet name must be explicitly mentioned for this): ' %function)
         if sheetName == "$1" and cellRange.lower() == "all":
             rangeName = 'A1:Z1001'
     
@@ -146,10 +156,13 @@ def formRange(function):
 
 
 def create(service):
-    '''Helps in creating a new spreadsheet for a user.
+    """Helps in creating a new spreadsheet for a user.
+
     Takes title of spreadsheet from user to create a spreadsheet.
     Prints spreadsheetID of the spreadsheet created which is necessary for further use of this spreadsheet.
-    '''
+    Returns the spreadsheetID of the spreadsheet created for further use in the session.
+    """
+
     data = {
       "properties": {
         'title': input('\nEnter Title of Spreadsheet: ')
@@ -166,25 +179,25 @@ def create(service):
         print('Spreadsheet not created!')
 
 def view(service, spreadsheetId):
-    '''Helps in viewing data for a spreadsheet using spreadsheet ID.
+    """Helps in viewing data for a spreadsheet using spreadsheet ID.
 
-    Takes input for range of data to be viewed using A1 notation- which is described in output.
+    Uses formRange method to take input for range of data to be viewed using A1 notation.
     Request sent returns a json object consisting of data properties.
     The 'values' key corresponds to a list of actual spreadsheet values which is parsed and printed in terminal.
     
     For demonstration purposes, a "trial" spreadsheet is initiated and used for convenience.
     The spreadsheet ID for trial spreadsheet is hardcoded. It can be accessed at:
     https://docs.google.com/spreadsheets/d/1Uk7T78T5n-HT0p9Y6ggxVF7RR06Lrn8nnZ32bsMdwhw/edit?usp=sharing
-    '''
+    """
     rangeName = formRange('view')
     majorDimension = input('\nFetch data along \"ROWS\" or \"COLUMNS\"?: ')
 
     try:
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheetId, range=rangeName, majorDimension=majorDimension).execute()
-        values = result['values']
-        if not values:
+        if 'values' not in result.keys():
             print('\nNo data found.')
         else:
+            values = result['values']
             print('')
             for row in values:
                 curr_row = ''
@@ -195,7 +208,6 @@ def view(service, spreadsheetId):
         print('\nUnable to find requested block of data. Please check the input for sheet name and cell range.')
 
 def append(service, spreadsheetId):
-   
     rangeName = formRange('append')
 
     no_of_rows = int(input('\nEnter number of rows of data do you wish to append: '))
